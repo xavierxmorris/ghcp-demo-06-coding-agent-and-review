@@ -1,0 +1,30 @@
+# Auto-request a Copilot code review on every PR.
+#
+# NOTE: The exact action / API for triggering Copilot review is governed by
+# your org's Copilot Business/Enterprise configuration. The snippet below
+# uses the GitHub CLI through `gh` and is the most portable approach today.
+# Adjust to use whichever official action your org has standardised on.
+
+name: Copilot code review
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  request-review:
+    if: ${{ github.event.pull_request.draft == false }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Request Copilot review
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} \
+            --add-reviewer "github-copilot[bot]" || \
+            echo "Copilot review not enabled for this repo — skipping."
