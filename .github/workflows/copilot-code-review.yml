@@ -1,11 +1,5 @@
-# Auto-request a Copilot code review on every PR.
-#
-# NOTE: The exact action / API for triggering Copilot review is governed by
-# your org's Copilot Business/Enterprise configuration. The snippet below
-# uses the GitHub CLI through `gh` and is the most portable approach today.
-# Adjust to use whichever official action your org has standardised on.
-
-name: Copilot code review
+# Optional request automation, not evidence that a review completed.
+name: Request Copilot code review
 
 on:
   pull_request:
@@ -13,18 +7,28 @@ on:
 
 permissions:
   pull-requests: write
-  contents: read
+
+concurrency:
+  group: copilot-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
 
 jobs:
   request-review:
-    if: ${{ github.event.pull_request.draft == false }}
-    runs-on: ubuntu-latest
+    if: >-
+      vars.ENABLE_COPILOT_REVIEW == 'true' &&
+      !github.event.pull_request.draft &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
       - name: Request Copilot review
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          gh pr edit ${{ github.event.pull_request.number }} \
-            --add-reviewer "github-copilot[bot]" || \
-            echo "Copilot review not enabled for this repo — skipping."
+          gh api --method POST "repos/$GH_REPO/pulls/$PR_NUMBER/requested_reviewers" \
+            -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
+          echo "Review requested. This job does not assert review completion or approval." >> "$GITHUB_STEP_SUMMARY"

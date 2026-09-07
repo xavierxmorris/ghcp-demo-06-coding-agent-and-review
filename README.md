@@ -57,19 +57,18 @@ root in PowerShell:
 ```powershell
 python -m venv backend\.venv
 .\backend\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
-npm --prefix frontend install
+npm --prefix frontend ci
 ```
 
 On macOS/Linux, use `backend/.venv/bin/python` for the virtual-environment
-interpreter. There is no committed frontend lockfile yet, so `npm ci` is not
-the initial setup command. Installing dependencies may create a local lockfile;
-review it as part of the learner's baseline work.
+interpreter. The frontend lockfile is committed: use `npm ci` for reproducible
+installation and review lockfile changes when intentionally updating dependencies.
 
 Before starting the app, use the workshop's baseline triage. The starter has
-known gaps: PATCH uses a create schema requiring `title`; frontend tests and
-a frontend lockfile are not committed; browser calls to port 8000 need an
-explicit cross-origin/proxy arrangement. Do not present a clean baseline as
-already established. Run backend and frontend in separate foreground terminals
+known gaps: PATCH uses a create schema requiring `title`; frontend tests are
+not committed; browser calls to port 8000 need an explicit cross-origin/proxy
+arrangement. The CI starter baseline is not proof these exercises are complete.
+Run backend and frontend in separate foreground terminals
 once those exercises are addressed.
 
 ---
@@ -161,10 +160,12 @@ one-shot generator. Treat it like an enthusiastic junior dev.
 ### Phase 3 — Copilot code review on the same PR
 
 Request review through the PR's **Reviewers** control, or configure automatic
-reviews in repository settings. The committed workflow is a historical
-request-only example: it uses an outdated reviewer identifier and catches
-request failures. A green workflow therefore does not prove a review happened.
-Do not use it as the lab's authoritative review path.
+reviews in repository settings. The optional committed workflow uses the
+documented `copilot-pull-request-reviewer[bot]` API identity and surfaces request
+errors. Enable it only with repository variable `ENABLE_COPILOT_REVIEW=true`
+after confirming review availability. Fork and Dependabot PRs are excluded
+from this write-token request path. A successful request is still not a completed
+review; inspect the PR's actual review and findings.
 
 Look for:
 - Suggested code edits (one-click "Commit suggestion").
@@ -234,6 +235,17 @@ GitHub documentation also describes **Copilot approvals in public preview**,
 disabled by default, which can count when explicitly enabled by policy.
 This lab does not require that preview: retain human approval for the exercise.
 Workflow changes require the explicit approval stated in `AGENTS.md`.
+
+The backend CI command is `python -m pytest -q -rxX --starter-baseline`.
+Only the known PATCH assertion is a strict expected failure under that flag;
+ordinary `pytest` still exposes the exercise. A starter-only assertion also
+requires the exact 422/missing-title response, rather than accepting any API
+error. Missing tests, other failures and an unexpected pass fail the baseline.
+When fixing PATCH, remove `--starter-baseline` from CI and run the ordinary suite.
+Frontend CI runs `npm ci` and
+`npm run build`, not an empty Vitest suite. Add and require meaningful UI tests
+as part of the workshop. Build/test tooling uses patched Vite 6.4.3 and Vitest
+3.2.7 rather than the old vulnerable majors.
 
 ## API: current starter
 

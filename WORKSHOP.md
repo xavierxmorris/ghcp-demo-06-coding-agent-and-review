@@ -31,7 +31,7 @@ Read [AGENTS.md](AGENTS.md), [backend/app/main.py](backend/app/main.py),
 | PATCH reuses `TaskIn` and requires `title` | Checkbox-only updates and the unknown-task test reach validation before lookup | Separate create/patch schemas; valid partial update and missing-ID tests |
 | Instructions request 400, implementation defaults to 422 | Generated tests can disagree without a shared contract | Agree and implement the documented error envelope |
 | Browser frontend calls port 8000 from a different origin | A working API can still fail in the browser | Explicit local origin allowlist or deliberate Vite proxy and matching request base |
-| No committed frontend tests or lockfile | `npm ci` and the advertised test gate are not a proven green baseline | Create meaningful UI tests and commit a lockfile in the learner change |
+| No committed frontend tests | Locked `npm ci` plus a production build does not establish UI correctness | Create meaningful UI tests and add them to the CI gate |
 | HTTP helper does not check `response.ok` | A rejected request may look successful in the UI | Show visible failure and preserve correct state |
 
 Treat these as starter work, not hidden success claims. The backend dependency
@@ -108,10 +108,11 @@ the previous review.
 
 Use **Reviewers -> Copilot -> Request** on GitHub, or approved repository
 automatic-review settings. The committed
-[request workflow](.github/workflows/copilot-code-review.yml) uses an older
-reviewer identifier and catches failures; its green status is not evidence
-that a review ran. The current documented API identity is
-`copilot-pull-request-reviewer[bot]`.
+[request workflow](.github/workflows/copilot-code-review.yml) is opt-in through
+`ENABLE_COPILOT_REVIEW=true`, uses `copilot-pull-request-reviewer[bot]`, and fails
+on request errors. Its green status is evidence of a successful request, not
+evidence that a review completed. Fork and Dependabot PRs use the approved
+manual or repository-managed review path instead.
 
 For each comment, reproduce the issue, accept a supported fix, or record why
 the suggestion is not applicable. Code-review comment replies are an audit
