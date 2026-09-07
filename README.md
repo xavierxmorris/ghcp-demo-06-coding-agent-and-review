@@ -4,8 +4,8 @@
 > **GHCP surfaces:**
 > - **Copilot coding agent** — assign an Issue, get a Pull Request back.
 > - **Copilot code review** — automatic + on-demand PR review.
-> - All the customisation surfaces from Demo 05 (`AGENTS.md`, instructions,
->   prompt files) — they're what make the agent's output match your house style.
+> - Repository instructions from Demo 05 (`AGENTS.md` and
+>   `copilot-instructions.md`). Prompt files can be brought across separately.
 > **Stack:** Python FastAPI backend + React/Vite frontend (intentionally tiny).
 > **Time:** ~45 minutes (most of which is waiting on the agent)
 
@@ -13,11 +13,17 @@ This is the headline demo: a workflow where you write *issues*, not code.
 You'll learn how to set the agent up for success, what to do when it gets
 something wrong, and how Copilot code review complements human reviewers.
 
+**Go deeper:** [WORKSHOP.md](WORKSHOP.md) adds starter-gap triage, a complete
+priority-field acceptance matrix, review follow-up, and a distinction between
+CI checks, review requests, and approvals.
+
 > 📣 **Important availability note**
-> The Copilot coding agent and Copilot code review are **Copilot Business /
-> Enterprise** features and may need to be enabled for your org. If you're on
-> a personal Copilot plan, you can still walk through the README and use the
-> prepared issue templates — just open the PRs yourself.
+> Checked **7 September 2026**: current GitHub documentation calls the coding
+> agent **Copilot cloud agent** and makes it available on all paid Copilot
+> plans, subject to policy and repository access. Code review has its own
+> availability and billing controls, including eligible personal plans.
+> See the workshop's first-party sources rather than assuming Business or
+> Enterprise is required for every participant.
 
 ---
 
@@ -29,11 +35,12 @@ something wrong, and how Copilot code review complements human reviewers.
    agent produces.
 4. Triggering Copilot code review on a PR; pushing back when it's wrong.
 5. The handoff: when to take over from the agent yourself.
-6. Wiring Copilot review into CI for required checks.
+6. Distinguishing CI checks, review requests, human approvals, and optional
+   Copilot approvals.
 
 ## Prerequisites
-- Copilot Business or Enterprise seat with **coding agent** enabled
-  (Settings → Copilot → Coding agent → enabled for this repo).
+- An eligible Copilot plan with cloud agent and code review allowed by the
+  applicable policies. Use a repository or fork you control for issue creation.
 - `gh` CLI authenticated.
 - Node 20+ and Python 3.11+ (only if you want to actually run the app).
 
@@ -42,11 +49,28 @@ something wrong, and how Copilot code review complements human reviewers.
 gh repo clone xavierxmorris/ghcp-demo-06-coding-agent-and-review
 cd ghcp-demo-06-coding-agent-and-review
 
-# Optional: run it locally first so you understand what the agent is editing.
-(cd backend && python -m venv .venv && source .venv/bin/activate && \
-   pip install -r requirements.txt && uvicorn app.main:app --reload) &
-(cd frontend && npm install && npm run dev) &
 ```
+
+Install the declared dependencies before baseline triage. From the repository
+root in PowerShell:
+
+```powershell
+python -m venv backend\.venv
+.\backend\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
+npm --prefix frontend install
+```
+
+On macOS/Linux, use `backend/.venv/bin/python` for the virtual-environment
+interpreter. There is no committed frontend lockfile yet, so `npm ci` is not
+the initial setup command. Installing dependencies may create a local lockfile;
+review it as part of the learner's baseline work.
+
+Before starting the app, use the workshop's baseline triage. The starter has
+known gaps: PATCH uses a create schema requiring `title`; frontend tests and
+a frontend lockfile are not committed; browser calls to port 8000 need an
+explicit cross-origin/proxy arrangement. Do not present a clean baseline as
+already established. Run backend and frontend in separate foreground terminals
+once those exercises are addressed.
 
 ---
 
@@ -61,8 +85,8 @@ cd ghcp-demo-06-coding-agent-and-review
 │   │   ├── good-first-issue.md              # designed for the coding agent
 │   │   └── bug-report.md
 │   └── workflows/
-│       ├── ci.yml                           # tests + lint
-│       └── copilot-code-review.yml          # auto-request review on PRs
+│       ├── ci.yml                           # test jobs; see starter gaps
+│       └── copilot-code-review.yml          # historical request-only example
 ├── backend/
 │   ├── app/
 │   │   ├── main.py                          # FastAPI app
@@ -122,22 +146,25 @@ When the PR is ready:
    what it did and why.
 2. Open **Files changed**. Notice:
    - Types and tests match the conventions in `copilot-instructions.md`.
-   - The frontend uses the existing components (it read them).
+   - The frontend follows the actual components and request helper in this repo.
 3. **Comment on a line** like a human PR review:
 
-   > "Use the existing `<Badge>` component instead of inline span styling."
+   > "@copilot Keep priority changes in `App.jsx` and network requests in
+   > `src/api.js`. Add a test showing that filtering does not mutate tasks."
 
-   Submit the comment. The agent will push a follow-up commit responding to
-   your feedback.
+   Submit the comment with `@copilot` to request a cloud-agent follow-up.
+   There is no pre-existing `<Badge>` component in this starter.
 
 🎯 **Lesson:** The agent is a *teammate that takes review comments*, not a
 one-shot generator. Treat it like an enthusiastic junior dev.
 
 ### Phase 3 — Copilot code review on the same PR
 
-If `.github/workflows/copilot-code-review.yml` is enabled, **Copilot review**
-posts a structured review automatically when the PR opens. You can also
-trigger it manually with the **"Request review from Copilot"** button.
+Request review through the PR's **Reviewers** control, or configure automatic
+reviews in repository settings. The committed workflow is a historical
+request-only example: it uses an outdated reviewer identifier and catches
+request failures. A green workflow therefore does not prove a review happened.
+Do not use it as the lab's authoritative review path.
 
 Look for:
 - Suggested code edits (one-click "Commit suggestion").
@@ -145,8 +172,10 @@ Look for:
 - Security smells (hard-coded secrets, SQL string concatenation).
 
 When Copilot review is **wrong** — which it will be sometimes — **resolve the
-comment with a one-line reason**. That's the audit trail; future review runs
-will see your reasoning.
+comment with a one-line reason**. That is an audit trail for people, not a
+promise that Copilot will learn from the reply. Current documentation says
+replies to code-review comments are not visible to Copilot. Use `@copilot`
+in a PR comment to ask the cloud agent for changes, or request a new review.
 
 🎯 **Lesson:** Copilot review is best as a **first pass** that frees humans
 to focus on architecture, naming, and business logic — not formatting nits.
@@ -169,8 +198,10 @@ Assign to `@copilot`. This one tests:
 - How it handles the webhook secret (env var, not hard-coded).
 
 You'll likely need to:
-- Comment to push the agent toward a stdlib `sched` loop instead of `APScheduler`.
-- Provide a specific webhook payload contract in a follow-up comment.
+- Separate the due-date API/UI task from the scheduled-webhook task.
+- Specify timezone, delivery retries, duplicate handling, hosting, and secret
+  storage before approving an external side effect. A `sched` loop alone does
+  not establish a durable production job.
 
 🎯 **Lesson:** **Iteration is part of the workflow.** Even with great
 guardrails, hard problems take 2–3 review cycles. That's still way faster
@@ -182,8 +213,10 @@ The agent is the wrong tool for:
 - **Multi-repo changes** (it works one repo at a time).
 - **High-stakes refactors** with subtle semantic changes (use IDE Chat where
   you can iterate locally).
-- **Anything that requires running a real database, browser, or production
-  data** to verify — the agent's sandbox is limited.
+- **Tasks requiring unavailable private systems or production data** to verify.
+  Do not solve an access gap by exposing credentials or data. Browsers and
+  test services are not categorically unavailable; inspect the configured
+  environment and keep the task independently testable.
 
 For those, **Copilot CLI** (Demo 04) or IDE Chat (Demos 02/03) are the right
 surfaces.
@@ -192,9 +225,28 @@ surfaces.
 
 ## CI integration
 
-`.github/workflows/copilot-code-review.yml` shows the minimal config to
-**require** a Copilot review pass before merge. Add the workflow's status
-check to your branch protection rules to make it gating.
+Use executable CI checks and repository rules for merge requirements.
+Successfully requesting a review is not a quality gate. The shipped workflow
+does not wait for a review or assess its findings.
+
+By default Copilot leaves a comment review, not a required approval. Current
+GitHub documentation also describes **Copilot approvals in public preview**,
+disabled by default, which can count when explicitly enabled by policy.
+This lab does not require that preview: retain human approval for the exercise.
+Workflow changes require the explicit approval stated in `AGENTS.md`.
+
+## API: current starter
+
+| Method/path | Current behavior |
+| --- | --- |
+| `GET /tasks` | Lists the in-memory tasks |
+| `POST /tasks` | Creates `{title, done, id}`; returns 201 |
+| `PATCH /tasks/{task_id}` | Uses `TaskIn`, so `title` is currently required; this is the first repair exercise |
+| `DELETE /tasks/{task_id}` | Deletes or returns 404; intended success status 204 |
+
+Pydantic request-validation errors use FastAPI's default 422 behavior in this
+starter, despite the instructions' desired 400 envelope. Make that discrepancy
+an explicit acceptance criterion rather than claiming it is already handled.
 
 ## Try it yourself
 
@@ -221,11 +273,11 @@ check to your branch protection rules to make it gating.
 
 ---
 
-## You finished the demo suite 🎉
+## Continue the demo suite
 
-← back to the [demo index](../)
+Back to the [demo index](https://github.com/xavierxmorris/ghcp-demos).
 
-If you ran all six, you've now touched every major Copilot surface:
+If you ran demos 01-06, you've completed the foundation track:
 completions, Chat, the CLI, customisation, the coding agent, and code review.
-The next step is to apply this on **your own** repo — start with Demo 05's
-customisation files and grow from there.
+The index also includes hosted agents, research, design, reconciliation, and
+legacy-modernisation labs.
